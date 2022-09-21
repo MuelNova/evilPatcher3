@@ -12,7 +12,7 @@ class patch64_handler:
         self.debugFlag = debugFlag
 
     def pr(self, a, addr):
-        log.success(a + '===>' + hex(addr))
+        log.success(f'{a}===>{hex(addr)}')
 
     def run(self):
         if self.debugFlag == 0:
@@ -50,11 +50,15 @@ class patch64_handler:
         print 'Patch file successfully!!!'
 
     def make_sandbox(self, sandboxfile):
-        sandboxCt = eval(getoutput('seccomp-tools asm ' + sandboxfile + ' -a amd64 -f inspect'))
-        os.system('seccomp-tools asm ' + sandboxfile + ' -a amd64 -f raw | seccomp-tools disasm -')
-        ct = []
-        for i in range(len(sandboxCt) / 8):
-            ct.append(u64(sandboxCt[i * 8:i * 8 + 8]))
+        sandboxCt = eval(
+            getoutput(f'seccomp-tools asm {sandboxfile} -a amd64 -f inspect')
+        )
+
+        os.system(
+            f'seccomp-tools asm {sandboxfile} -a amd64 -f raw | seccomp-tools disasm -'
+        )
+
+        ct = [u64(sandboxCt[i * 8:i * 8 + 8]) for i in range(len(sandboxCt) / 8)]
         ct.reverse()
         return ct
 
@@ -62,18 +66,18 @@ class patch64_handler:
         inject_code = asm(shellcraft.prctl(38, 1, 0, 0, 0))
         for i in self.ct:
             if i > 0x3fffffff:
-                a = 'mov rax,' + str(i)
+                a = f'mov rax,{str(i)}'
                 inject_code += asm(a)
                 inject_code += asm('push rax')
             else:
-                a = 'push ' + str(i)
+                a = f'push {str(i)}'
                 inject_code += asm(a)
         inject_code += asm(shellcraft.push('rsp'))
         inject_code += asm(shellcraft.push(len(self.ct)))
         inject_code += asm('mov r10,rcx')
         inject_code += asm(shellcraft.prctl(0x16, 2, 'rsp'))
         tmp = len(self.ct) * 8 + 0x10
-        inject_code += asm('add rsp,' + str(hex(tmp)))
+        inject_code += asm(f'add rsp,{hex(tmp)}')
         return inject_code
 
     def edit_program_table_header(self):
@@ -104,23 +108,23 @@ class patch64_handler:
         self.pr('eh_frame_addr', eh_frame_addr)
         self.pr('start_offset', start_offset)
         self.pr('main_addr', main_addr)
-        print '=================================edit _start=================================='
-        print 'replace _start+' + str(offset) + '------>change __libc_start_main\'s first parameter: main->.eh_frame'
-        print disasm(self.elf.read(start_offset + offset, 7))
-        s = 'lea rdi,[rip+' + str(hex(eh_frame_addr - (start_offset + offset) - 7)) + '];'
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
+        s = f'lea rdi,[rip+{hex(eh_frame_addr - (start_offset + offset) - 7)}];'
         print('                ||               ')
         print('                ||               ')
         print('                \/               ')
-        print disasm(asm(s))
-
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
         # ct = [6,0x7FFF000000000006,0x3B00010015,0x3800020015,0x3200030015,0x3100040015,0x2A00050015,0x2900060015,0x4000000000070035,0x20,0xC000003E09000015,0x400000020]
         inject_code = self.inject_code_build()
-        tail = 'lea r8,[rip' + str(hex(main_addr - (eh_frame_addr + len(inject_code)) - 7)) + '];jmp r8;'
+        tail = f'lea r8,[rip{hex(main_addr - (eh_frame_addr + len(inject_code)) - 7)}];jmp r8;'
+
         inject_code += asm(tail)
-        print '============================inject code into .eh_frame========================'
-        print disasm(inject_code)
-        print '.eh_frame.sh_size===>' + str(hex(self.elf.get_section_by_name('.eh_frame').header.sh_size))
-        print 'inject_code.length===>' + str(hex(len(inject_code)))
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
+        eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
         self.elf.write(start_offset + offset, asm(s))
         self.elf.write(eh_frame_addr, inject_code)
         self.edit_program_table_header()
@@ -137,22 +141,22 @@ class patch64_handler:
         self.pr('eh_frame_addr', eh_frame_addr)
         self.pr('start_offset', start_offset)
         self.pr('main_addr', main_addr)
-        print '=================================edit _start=================================='
-        print 'replace _start+' + str(offset) + '------>change __libc_start_main\'s first parameter: main->.eh_frame'
-        print disasm(self.elf.read(start_offset + offset, 7))
-        s = 'mov rdi,' + str(eh_frame_addr) + ';'
+        program_base = self.elf.address
+        program_base = self.elf.address
+        program_base = self.elf.address
+        s = f'mov rdi,{str(eh_frame_addr)};'
         print('                ||               ')
         print('                ||               ')
         print('                \/               ')
-        print disasm(asm(s))
+        program_base = self.elf.address
         # ct = [6,0x7FFF000000000006,0x3B00010015,0x3800020015,0x3200030015,0x3100040015,0x2A00050015,0x2900060015,0x4000000000070035,0x20,0xC000003E09000015,0x400000020]
         inject_code = self.inject_code_build()
-        tail = 'mov r8,' + str(main_addr) + ';jmp r8;'
+        tail = f'mov r8,{str(main_addr)};jmp r8;'
         inject_code += asm(tail)
-        print '============================inject code into .eh_frame============================'
-        print disasm(inject_code)
-        print '.eh_frame.sh_size===>' + str(hex(self.elf.get_section_by_name('.eh_frame').header.sh_size))
-        print 'inject_code.length===>' + str(hex(len(inject_code)))
+        program_base = self.elf.address
+        program_base = self.elf.address
+        program_base = self.elf.address
+        program_base = self.elf.address
         self.elf.write(start_offset + offset, asm(s))
         self.elf.write(eh_frame_addr, inject_code)
         self.edit_program_table_header()

@@ -12,7 +12,7 @@ class patch32_handler:
         self.debugFlag = debugFlag
 
     def pr(self, a, addr):
-        log.success(a + '===>' + hex(addr))
+        log.success(f'{a}===>{hex(addr)}')
 
     def run(self):
         if self.debugFlag == 0:
@@ -50,29 +50,32 @@ class patch32_handler:
         print 'Patch file successfully!!!'
 
     def make_sandbox(self, sandboxfile):
-        sandboxCt = eval(getoutput('seccomp-tools asm ' + sandboxfile + ' -a i386 -f inspect'))
-        os.system('seccomp-tools asm ' + sandboxfile + ' -a i386 -f raw | seccomp-tools disasm -a i386 -')
-        ct = []
-        for i in range(len(sandboxCt) / 8):
-            ct.append(u64(sandboxCt[i * 8:i * 8 + 8]))
+        sandboxCt = eval(
+            getoutput(f'seccomp-tools asm {sandboxfile} -a i386 -f inspect')
+        )
+
+        os.system(
+            f'seccomp-tools asm {sandboxfile} -a i386 -f raw | seccomp-tools disasm -a i386 -'
+        )
+
+        ct = [u64(sandboxCt[i * 8:i * 8 + 8]) for i in range(len(sandboxCt) / 8)]
         ct.reverse()
         ct2 = []
         for i in ct:
-            ct2.append(i >> 32)
-            ct2.append(i & 0xffffffff)
+            ct2.extend((i >> 32, i & 0xffffffff))
         return ct2
 
     def inject_code_build(self):
         inject_code = asm(shellcraft.prctl(38, 1, 0, 0, 0))
         for i in self.ct:
-            a = 'push ' + hex(i)
+            a = f'push {hex(i)}'
             # print(a)
             inject_code += asm(a)
         inject_code += asm(shellcraft.push('esp'))
         inject_code += asm(shellcraft.push(len(self.ct) / 2))
         inject_code += asm(shellcraft.prctl(0x16, 2, 'esp'))
         tmp = len(self.ct) * 4 + 0x8
-        inject_code += asm('add esp,' + str(hex(tmp)))
+        inject_code += asm(f'add esp,{hex(tmp)}')
         return inject_code
 
     def edit_program_table_header(self):

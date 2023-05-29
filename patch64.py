@@ -132,7 +132,7 @@ class patch64_handler:
 
         eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
         start_offset = self.elf.header.e_entry
-        offset = self.elf.read(start_offset, 0x40).find('\x48\xc7\xc7')  # mov rdi,?
+        offset = self.elf.read(start_offset, 0x40).find(b'\x48\xc7\xc7')  # mov rdi,?
         main_addr = u32(self.elf.read(start_offset + offset + 3, 4))
         self.pr('eh_frame_addr', eh_frame_addr)
         self.pr('start_offset', start_offset)

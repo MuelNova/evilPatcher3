@@ -98,7 +98,7 @@ class patch32_handler:
             got_start = self.elf.get_section_by_name('.got.plt').header.sh_addr
         except:
             got_start = self.elf.get_section_by_name('.got').header.sh_addr
-            offset = self.elf.read(start_offset, 0x40).find('\x50\x51\x56')
+            offset = self.elf.read(start_offset, 0x40).find(b'\x50\x51\x56')
             offset1 = u32(self.elf.read(start_offset + offset + 3 + 2, 4))  # push DWORD PTR [ebx+offset1]
             offset2 = got_start - eh_frame_addr
             main_addr = u32(self.elf.read((got_start + offset1) & 0xffffffff, 4))
@@ -134,11 +134,11 @@ class patch32_handler:
         self.pr('program_base', program_base)
         eh_frame_addr = self.elf.get_section_by_name('.eh_frame').header.sh_addr
         start_offset = self.elf.header.e_entry
-        offset = self.elf.read(start_offset, 0x40).find('\x50\x51\x56')
+        offset = self.elf.read(start_offset, 0x40).find(b'\x50\x51\x56')
         main_addr = u32(self.elf.read(start_offset + offset + 5, 4))
         # Maybe compiled by ubuntu16.04
         if offset == -1:
-            offset = self.elf.read(start_offset, 0x30).find('\xf4') - 10  # hlt
+            offset = self.elf.read(start_offset, 0x30).find(b'\xf4') - 10  # hlt
             main_addr = u32(self.elf.read(start_offset + offset + 1, 4))
             self.pr('eh_frame_addr', eh_frame_addr)
             self.pr('start_offset', start_offset)
